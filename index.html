@@ -1,0 +1,370 @@
+<html>
+
+<head>
+    <title>Peer-to-peer Chat</title>
+    <link rel="stylesheet" href="style.css">
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.8/jquery.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/0.3.14/peer.min.js"></script>
+    <script>
+        var username;
+        var userid;
+        var datas;
+
+        var getloop;
+
+        // Compatibility shim
+        navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+
+        // PeerJS object
+        var peer = new Peer({
+            key: 'atmfbbc4eypynwmi',
+            debug: 0
+        });
+
+        peer.on('open', function() {
+            $('#my-id').text(peer.id);
+            userid = peer.id;
+        });
+
+        // Receiving a call
+        peer.on('call', function(call) {
+
+            // Answer the call automatically (instead of prompting user) for demo purposes
+            call.answer(window.localStream);
+            step3(call);
+        });
+        peer.on('error', function(err) {
+            alert(err.message);
+            // Return to step 2 if error occurs
+            step2();
+        });
+
+        // Click handlers setup
+        $(function() {
+            $('#make-call').click(function() {
+                // Initiate a call!
+                if (document.getElementById("callto-id").value != '') {
+                    var call = peer.call($('#callto-id').val(), window.localStream);
+
+                    step3(call);
+                }
+            });
+
+            $('#changename').click(function() {
+                username = $('#username').val();
+                localStorage.setItem("prevname", username);
+
+
+                $.get("https://api.myjson.com/bins/e5x5j", function(data, textStatus, jqXHR) {
+
+                    datas = data;
+
+
+
+                    datas[username] = userid;
+                    var datasJ = JSON.stringify(datas);
+                    setTimeout(function() {
+
+                        $.ajax({
+                            url: "https://api.myjson.com/bins/e5x5j",
+                            type: "PUT",
+                            data: datasJ,
+                            contentType: "application/json; charset=utf-8",
+                            dataType: "json",
+                            success: function(data, textStatus, jqXHR) {
+
+                            }
+                        });
+
+                        document.getElementById("book").innerHTML = '';
+                        Object.keys(datas).forEach(function(key) {
+                            if (key != username) {
+
+                                //console.log(key, datas[key]);
+                                var para = document.createElement("P");
+                                var t = document.createTextNode(key);
+                                para.appendChild(t);
+                                para.style.fontSize = '75%'
+                                para.id = key + datas[key];
+                                para.address = datas[key];
+                                para.onclick = function() {
+
+                                    //console.log(para.address);
+                                    var call = peer.call(para.address, window.localStream);
+
+                                    step3(call);
+
+
+                                };
+                                para.onmouseover = function() {
+
+                                    para.style.color = 'blue';
+
+
+                                };
+                                para.onmouseout = function() {
+
+                                    para.style.color = 'black';
+
+
+                                };
+
+
+                                para.style.cursor = 'pointer';
+                                document.getElementById("book").appendChild(para);
+
+
+
+                            }
+                        });
+
+                        getloop = setInterval(function() {
+
+
+                            $.get("https://api.myjson.com/bins/e5x5j", function(data, textStatus, jqXHR) {
+                                datas = data;
+
+                                datas[username] = userid;
+                                var datasJ = JSON.stringify(datas);
+
+
+                                $.ajax({
+                                    url: "https://api.myjson.com/bins/e5x5j",
+                                    type: "PUT",
+                                    data: datasJ,
+                                    contentType: "application/json; charset=utf-8",
+                                    dataType: "json",
+                                    success: function(data, textStatus, jqXHR) {
+
+                                    }
+                                });
+
+                                document.getElementById("book").innerHTML = '';
+                                Object.keys(datas).forEach(function(key) {
+                                    if (key != username) {
+
+                                        //console.log(key, datas[key]);
+                                        var para = document.createElement("P");
+                                        var t = document.createTextNode(key);
+                                        para.appendChild(t);
+                                        para.style.fontSize = '75%'
+                                        para.id = key + datas[key];
+                                        para.address = datas[key];
+                                        para.onclick = function() {
+
+                                            //console.log(para.address);
+                                            var call = peer.call(para.address, window.localStream);
+
+                                            step3(call);
+
+
+                                        };
+                                        para.onmouseover = function() {
+
+                                            para.style.color = 'blue';
+
+
+                                        };
+                                        para.onmouseout = function() {
+
+                                            para.style.color = 'black';
+
+
+                                        };
+                                        para.style.cursor = 'pointer';
+
+
+                                        document.getElementById("book").appendChild(para);
+
+
+
+                                    }
+                                });
+
+
+                            });
+							
+							
+						if( $('#book').is(':empty') ) {
+						$('#book')[0].innerHTML = "seems like there's no one online";
+						}
+
+
+                        }, 3000);
+
+
+                    }, 250);
+
+
+                });
+
+
+
+            });
+
+            $('#end-call').click(function() {
+                window.existingCall.close();
+                step2();
+            });
+
+            // Retry if getUserMedia fails
+            $('#step1-retry').click(function() {
+                $('#step1-error').hide();
+                step1();
+            });
+
+            // Get things started
+            step1();
+
+
+            window.onbeforeunload = closingCode;
+
+            function closingCode() {
+
+                $.get("https://api.myjson.com/bins/e5x5j", function(data, textStatus, jqXHR) {
+
+                    datas = data;
+                    delete datas[username];
+                    var datasJ = JSON.stringify(datas);
+
+                    $.ajax({
+                        url: "https://api.myjson.com/bins/e5x5j",
+                        type: "PUT",
+                        data: datasJ,
+                        contentType: "application/json; charset=utf-8",
+                        dataType: "json",
+                        success: function(data, textStatus, jqXHR) {
+
+                        }
+                    });
+
+                    return null;
+
+                });
+            }
+
+        });
+
+        function step1() {
+            // Get audio/video stream
+            navigator.getUserMedia({
+                audio: true,
+                video: true
+            }, function(stream) {
+                // Set your video displays
+                $('#my-video').prop('src', URL.createObjectURL(stream));
+
+                window.localStream = stream;
+                step2();
+            }, function() {
+                $('#step1-error').show();
+            });
+        }
+
+        function step2() {
+            $('#step1, #step3').hide();
+            $('#step2').show();
+        }
+
+        function step3(call) {
+            // Hang up on an existing call if present
+            if (window.existingCall) {
+                window.existingCall.close();
+            }
+
+            // Wait for stream on the call, then set peer video display
+            call.on('stream', function(stream) {
+                $('#their-video').prop('src', URL.createObjectURL(stream));
+            });
+
+            // UI stuff
+            window.existingCall = call;
+            $('#their-id').text(call.peer);
+            call.on('close', step2);
+            $('#step1, #step2').hide();
+            $('#step3').show();
+        }
+
+
+        var cleanupdata = setTimeout(function() {
+
+
+
+            $.ajax({
+                url: 'https://api.myjson.com/bins/e5x5j',
+                type: "PUT",
+                data: '{"Wobbles":""}',
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                success: function(data, textStatus, jqXHR) {
+
+                }
+            });
+
+
+
+        }, 10000);
+    </script>
+
+
+</head>
+
+<body>
+
+    <div class="pure-g">
+
+        <!-- Video area -->
+        <div class="pure-u-2-3" id="video-container">
+            <video id="their-video" autoplay></video>
+            <video id="my-video" muted="true" autoplay></video>
+        </div>
+
+        <!-- Steps -->
+        <div class="pure-u-1-3">
+            <h2 style='position:absolute;left:77%;top:1.5%;'>PP2PChat</h2>
+            <input type="text" placeholder="username" style="position:absolute;left:77%;top:10%;" id="username">
+            <a class="pure-button pure-button-success" id="changename" style="position:absolute;left:77%;top:9%;left:92%;">Set</a>
+
+            <!-- Get local audio/video stream -->
+            <div id="step1" style="position:absolute;left:77%;top:13%;">
+                <p>Please click `allow` on the top of the screen so we can access your webcam and microphone for calls.</p>
+                <div id="step1-error">
+                    <p>Failed to access the webcam and microphone.</p>
+                    <a href="#" class="pure-button pure-button-error" id="step1-retry">Try again</a>
+                </div>
+            </div>
+
+            <!-- Make calls to others -->
+            <div id="step2" style="position:absolute;left:77%;top:13%;">
+                <p>Your address: <span id="my-id">...</span></p>
+                <h4>Direct Call</h3>
+                    <div class="pure-form" style=''>
+                        <input type="text" placeholder="Call address..." id="callto-id">
+                        <a href="#" class="pure-button pure-button-success" id="make-call">Call</a>
+                    </div>
+                    <h3>Address Book</h3>
+                    <div id="book" class='myBox'>
+                        please set a username to access the book
+                    </div>
+            </div>
+
+            <!-- Call in progress -->
+            <div id="step3" style="position:absolute;left:77%;top:13%;">
+                <p>Currently in call with <span id="their-id">...</span></p>
+                <p><a href="#" class="pure-button pure-button-error" id="end-call">End call</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        setTimeout(function() {
+
+            document.getElementById("username").value = localStorage.getItem("prevname");
+
+        }, 250);
+    </script>
+
+
+</body>
+
+</html>
