@@ -18,7 +18,8 @@
         // PeerJS object
         var peer = new Peer({
             key: 'atmfbbc4eypynwmi',
-            debug: 0
+            debug: 0,
+			secure: true
         });
 
         peer.on('open', function() {
